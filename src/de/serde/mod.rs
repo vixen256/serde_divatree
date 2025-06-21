@@ -481,6 +481,16 @@ impl<'a, 'de, I: Iterator<Item = &'de str> + 'de> SeqAccess<'de> for SeqParser<'
                 }
             }
 
+            while !self.read_indices.contains(&self.index)
+                && self
+                    .read_indices
+                    .iter()
+                    .find(|i| i > &&self.index)
+                    .is_some()
+            {
+                self.index += 1;
+            }
+
             // TODO: get rid of this clone
             let mut lookup = Parser::new(self.read_lines.clone().into_iter());
             if !self.read_indices.contains(&self.index)
