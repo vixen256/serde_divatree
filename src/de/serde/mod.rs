@@ -423,11 +423,12 @@ impl<'a, 'de, I: Iterator<Item = &'de str> + 'de> SeqAccess<'de> for SeqParser<'
     where
         T: DeserializeSeed<'de>,
     {
-        if self.de.iter.is_finished() {
-            return Ok(None);
-        }
         #[cfg(not(feature = "alloc"))]
         {
+            if self.de.iter.is_finished() {
+                return Ok(None);
+            }
+
             let (ident, span) = self.de.value()?;
             if ident.chars().all(|x| x.is_ascii_digit()) {
                 self.de.iter.increment_prefix_level();
@@ -445,6 +446,9 @@ impl<'a, 'de, I: Iterator<Item = &'de str> + 'de> SeqAccess<'de> for SeqParser<'
         }
         #[cfg(feature = "alloc")]
         {
+            if self.de.iter.is_finished() && self.read_lines.is_empty() {
+                return Ok(None);
+            }
             // HACK: This code sucks
 
             #[cfg(feature = "tracing")]
@@ -709,6 +713,43 @@ extra=stuff";
 8=8
 9=9
 length=12";
+        let data: Vec<i64> = from_str(input).unwrap();
+        assert_eq!(data, (0..12).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn read_bad_seq() {
+        let input = "0=0
+1=1
+10=10
+11=11
+2=2
+3=3
+4=4
+5=5
+6=6
+7=7
+8=8
+9=9
+length=10";
+        let data: Vec<i64> = from_str(input).unwrap();
+        assert_eq!(data, (0..10).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn read_unsized_seq() {
+        let input = "0=0
+1=1
+10=10
+11=11
+2=2
+3=3
+4=4
+5=5
+6=6
+7=7
+8=8
+9=9";
         let data: Vec<i64> = from_str(input).unwrap();
         assert_eq!(data, (0..12).collect::<Vec<_>>());
     }
